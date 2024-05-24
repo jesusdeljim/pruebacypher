@@ -1,0 +1,142 @@
+MATCH (`questionnairePatientStatus`:`QuestionnairePatientStatus` {_isDeleted:$_isDeleted, _isLastVersion:$_isLastVersion}) WHERE (EXISTS((`questionnairePatientStatus`)-[:_questionnaire]->(:Questionnaire)) AND ALL(`questionnaire` IN [(`questionnairePatientStatus`)-[:_questionnaire]->(`_questionnaire`:Questionnaire) | `_questionnaire`] WHERE (`questionnaire`.status = $filter._questionnaire.status) AND (EXISTS((`questionnaire`)-[:_telehealthCarePlan]->(:TelehealthCarePlan)) AND ALL(`telehealthcareplan` IN [(`questionnaire`)-[:_telehealthCarePlan]->(`_telehealthcareplan`:TelehealthCarePlan) | `_telehealthcareplan`] WHERE (`telehealthcareplan`.id IN $filter._questionnaire._telehealthCarePlan.id_in)))) AND ( EXISTS((`questionnairePatientStatus`)  - [:_patient]  - ({_isLastVersion: true})  - [:user]  - (:UserPatient {keycloakID: 'd3e9332f-9bea-419d-938e-18354def38f0'})) ))    WITH  COLLECT (questionnairePatientStatus) as list WITH SIZE(list) as _totalCount, list
+UNWIND list as questionnairePatientStatus
+WITH questionnairePatientStatus, _totalCount
+
+RETURN questionnairePatientStatus {
+    ._status,
+    .id,
+    _lastResponseDate: { formatted: toString(questionnairePatientStatus._lastResponseDate) },
+    _questionnaire: head([
+        (questionnairePatientStatus)-[:_questionnaire]->(questionnairePatientStatus__questionnaire:Questionnaire) |
+        questionnairePatientStatus__questionnaire {
+            .id,
+            .url,
+            .version,
+            .name,
+            .title,
+            .status,
+            _telehealthCarePlan: head([
+                (questionnairePatientStatus__questionnaire)-[:_telehealthCarePlan]->(questionnairePatientStatus__questionnaire__telehealthCarePlan:TelehealthCarePlan) |
+                questionnairePatientStatus__questionnaire__telehealthCarePlan { .id }
+            ]),
+            ._type,
+            date: { formatted: toString(questionnairePatientStatus__questionnaire.date) },
+            .publisher,
+            .description,
+            jurisdiction: [
+                (questionnairePatientStatus__questionnaire)-[:jurisdiction]->(questionnairePatientStatus__questionnaire_jurisdiction:CodeableConcept) |
+                questionnairePatientStatus__questionnaire_jurisdiction { .text }
+            ],
+            _lastOpenDate: { formatted: toString(questionnairePatientStatus__questionnaire._lastOpenDate) },
+            ._userManagement,
+            questionnaireItem_questionnaire: [sortedElement IN apoc.coll.sortMulti([(`questionnairePatientStatus__questionnaire`)<-[:`_questionnaire`]-(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`:`QuestionnaireItem`) 
+| `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire` { 
+    .id ,
+    _createdAt: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`._createdAt, 
+    .linkId ,
+    code: [(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`)-[:`code`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire_code`:`Coding`) 
+        | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire_code` { .display }
+    ] , 
+    .prefix , 
+    .text , 
+    .type , 
+    .required ,
+    ._index , 
+    ._mediaURL , 
+    ._description , 
+    .repeats , 
+    .readOnly , 
+    .maxLength ,
+    enableWhen: [(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`)-[:`enableWhen`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire_enableWhen`:`Clause`) 
+        | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire_enableWhen` { 
+            ._operator ,
+            _leftTerm: head([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire_enableWhen`)-[:`_leftTerm`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire_enableWhen__leftTerm`:`QuestionnaireItem`) 
+                | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire_enableWhen__leftTerm` { ._linkId }
+            ]) , 
+            ._rightTerm , 
+            .answerBoolean , 
+            .answerDecimal , 
+            .answerInteger , 
+            .answerDate , 
+            .answerDateTime , 
+            .answerTime , 
+            .answerString , 
+            .answerCoding , 
+            .answerQuantity , 
+            .answerReference 
+        }
+    ] , 
+    _decimalAnswerSpecification: head([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`)-[:`_decimalAnswerSpecification`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__decimalAnswerSpecification`:`QuestionnaireItem_DecimalAnswerSpecification`) 
+        | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__decimalAnswerSpecification` { ._maxValue , ._minValue }
+    ]) ,
+    _integerAnswerSpecification: head([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`)-[:`_integerAnswerSpecification`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__integerAnswerSpecification`:`QuestionnaireItem_IntegerAnswerSpecification`) 
+        | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__integerAnswerSpecification` { ._maxValue , ._minValue }
+    ]) ,
+    _categoricalAnswerSpecification: head([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`)-[:`_categoricalAnswerSpecification`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__categoricalAnswerSpecification`:`QuestionnaireItem_CategoricalAnswerSpecification`) 
+        | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__categoricalAnswerSpecification` {
+            _allowedValues: apoc.coll.sortMulti([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__categoricalAnswerSpecification`)-[:`_allowedValues`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__categoricalAnswerSpecification__allowedValues`:`QuestionnaireItem_CategoricallAlowedValue`) 
+                | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__categoricalAnswerSpecification__allowedValues` { ._value , ._index }
+            ], ['^_index'])
+        }
+    ]) ,
+    _ordinalCategoricalAnswerSpecification: head([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`)-[:`_ordinalCategoricalAnswerSpecification`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__ordinalCategoricalAnswerSpecification`:`QuestionnaireItem_OrdinalCategoricalAnswerSpecification`) 
+        | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__ordinalCategoricalAnswerSpecification` {
+            _allowedValues: apoc.coll.sortMulti([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__ordinalCategoricalAnswerSpecification`)-[:`_allowedValues`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__ordinalCategoricalAnswerSpecification__allowedValues`:`QuestionnaireItem_OrdinalCategoricalAllowedValue`) 
+                | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__ordinalCategoricalAnswerSpecification__allowedValues` { ._value , ._numericValue , ._index }
+            ], ['^_index'])
+        }
+    ]) ,
+    _dateAnswerSpecification: head([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`)-[:`_dateAnswerSpecification`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateAnswerSpecification`:`QuestionnaireItem_DateAnswerSpecification`) 
+        | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateAnswerSpecification` {
+            _startDate: { 
+                year: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateAnswerSpecification`._startDate.year , 
+                month: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateAnswerSpecification`._startDate.month , 
+                day: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateAnswerSpecification`._startDate.day 
+            } ,
+            _endDate: { 
+                year: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateAnswerSpecification`._endDate.year , 
+                month: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateAnswerSpecification`._endDate.month , 
+                day: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateAnswerSpecification`._endDate.day 
+            } 
+        }
+    ]) ,
+    _dateTimeAnswerSpecification: head([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`)-[:`_dateTimeAnswerSpecification`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`:`QuestionnaireItem_DateTimeAnswerSpecification`) | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification` {_startDateTime: { year: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._startDateTime.year , month: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._startDateTime.month , day: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._startDateTime.day , hour: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._startDateTime.hour , minute: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._startDateTime.minute , second: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._startDateTime.second , formatted: toString(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._startDateTime) },_endDateTime: { year: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._endDateTime.year , month: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._endDateTime.month , day: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._endDateTime.day , hour: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._endDateTime.hour , minute: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._endDateTime.minute , second: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._endDateTime.second , formatted: toString(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__dateTimeAnswerSpecification`._endDateTime) }}]),
+
+    _timeAnswerSpecification: head([(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire`)-[:`_timeAnswerSpecification`]->(`questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__timeAnswerSpecification`:`QuestionnaireItem_TimeAnswerSpecification`) 
+        | `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__timeAnswerSpecification` {
+            _startTime: { 
+                hour: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__timeAnswerSpecification`._startTime.hour , 
+                minute: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__timeAnswerSpecification`._startTime.minute 
+            } ,
+            _endTime: { 
+                hour: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__timeAnswerSpecification`._endTime.hour , 
+                minute: `questionnairePatientStatus__questionnaire_questionnaireItem_questionnaire__timeAnswerSpecification`._endTime.minute 
+            } 
+        }
+    ]) , 
+    .answerOption 
+}], ['^_createdAt']) ],
+            _schedulingRules: head([
+                (questionnairePatientStatus__questionnaire)-[:_schedulingRules]->(questionnairePatientStatus__questionnaire__schedulingRules:Questionnaire_SchedulingRules) |
+                questionnairePatientStatus__questionnaire__schedulingRules {
+                    ._frequency,
+                    ._everyNDaysValue,
+                    ._everyNDaysDelayNextSubmission,
+                    ._frequencyAllowLateSubmissions,
+                    ._onSpecificWeekDaysMonday,
+                    ._onSpecificWeekDaysTuesday,
+                    ._onSpecificWeekDaysWednesday,
+                    ._onSpecificWeekDaysThursday,
+                    ._onSpecificWeekDaysFriday,
+                    ._onSpecificWeekDaysSaturday,
+                    ._onSpecificWeekDaysSunday,
+                    ._dayTime,
+                    _timeRangeStart: { formatted: toString(questionnairePatientStatus__questionnaire__schedulingRules._timeRangeStart) },
+                    _timeRangeEnd: { formatted: toString(questionnairePatientStatus__questionnaire__schedulingRules._timeRangeEnd) },
+                    ._timeRangeAllowOutOfTime,
+                    ._notifications
+                }
+            ])
+        }
+    ])
+}
